@@ -10,9 +10,7 @@ app.use(express.json());
 app.post('/', async (req, res) => {
   const { url } = req.body;
 
-  if (!url) {
-    return res.status(400).json({ error: "URL is verplicht" });
-  }
+  if (!url) return res.status(400).json({ error: "URL is verplicht" });
 
   try {
     const response = await axios.get(url, {
@@ -25,7 +23,7 @@ app.post('/', async (req, res) => {
     const $ = cheerio.load(html);
 
     const recipe = {
-      name: $('h1').first().text().trim() || 'Onbekend recept',
+      name: '',
       image: '',
       ingredients: [],
       instructions: [],
@@ -33,6 +31,11 @@ app.post('/', async (req, res) => {
       cookTime: '25 min',
       totalTime: '40 min'
     };
+
+    // Naam - meerdere methodes
+    recipe.name = $('h1').first().text().trim() || 
+                  $('.recipe-header h1').text().trim() || 
+                  'Onbekend recept';
 
     // Hoofdafbeelding
     recipe.image = $('img').filter((i, el) => {
@@ -44,18 +47,26 @@ app.post('/', async (req, res) => {
       recipe.image = new URL(recipe.image, url).href;
     }
 
-    // Ingrediënten
-    $('li').each((i, el) => {
+    // Ingrediënten (specifiek voor AH)
+    $('.ingredient-list li, li.ingredient, .recipe-ingredients li').each((i, el) => {
       const text = $(el).text().trim();
-      if (text.length > 8 && (text.match(/^\d/) || text.includes('g ') || text.includes(' ml') || text.includes('theelepel') || text.includes('snuf'))) {
-        recipe.ingredients.push(text);
-      }
+      if (text.length > 5) recipe.ingredients.push(text);
     });
 
-    // Stappen (basis)
-    $('ol li, .step, p').each((i, el) => {
+    // Alternatieve ingrediënten methode
+    if (recipe.ingredients.length === 0) {
+      $('li').each((i, el) => {
+        const text = $(el).text().trim();
+        if (text.length > 8 && (text.match(/^\d/) || text.includes('g ') || text.includes('ml') || text.includes('theelepel'))) {
+          recipe.ingredients.push(text);
+        }
+      });
+    }
+
+    // Stappen
+    $('ol li, .instruction-step, .recipe-step, p').each((i, el) => {
       const text = $(el).text().trim();
-      if (text.length > 25) {
+      if (text.length > 30) {
         recipe.instructions.push(text);
       }
     });
@@ -63,7 +74,7 @@ app.post('/', async (req, res) => {
     res.json(recipe);
   } catch (error) {
     console.error(error);
-    res.status(500).json({ error: "Kon recept niet ophalen", message: error.message });
+    res.status(500).json({ error: "Kon recept niet ophalen" });
   }
 });
 
