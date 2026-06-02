@@ -20,6 +20,7 @@ app.post('/', async (req, res) => {
         'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36'
       }
     });
+    
     const html = response.data;
     const $ = cheerio.load(html);
 
@@ -33,7 +34,7 @@ app.post('/', async (req, res) => {
       totalTime: '40 min'
     };
 
-    // Afbeelding
+    // Hoofdafbeelding
     recipe.image = $('img').filter((i, el) => {
       const src = $(el).attr('src') || $(el).attr('data-src') || '';
       return src.includes('.jpg') || src.includes('.jpeg') || src.includes('.webp');
@@ -46,8 +47,16 @@ app.post('/', async (req, res) => {
     // Ingrediënten
     $('li').each((i, el) => {
       const text = $(el).text().trim();
-      if (text.length > 8 && (text.match(/^\d/) || text.includes('g ') || text.includes('ml') || text.includes('theelepel'))) {
+      if (text.length > 8 && (text.match(/^\d/) || text.includes('g ') || text.includes(' ml') || text.includes('theelepel') || text.includes('snuf'))) {
         recipe.ingredients.push(text);
+      }
+    });
+
+    // Stappen (basis)
+    $('ol li, .step, p').each((i, el) => {
+      const text = $(el).text().trim();
+      if (text.length > 25) {
+        recipe.instructions.push(text);
       }
     });
 
