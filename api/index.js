@@ -32,9 +32,10 @@ app.post('/', async (req, res) => {
       totalTime: '40 min'
     };
 
-    // Naam - meerdere methodes
+    // Naam - meerdere pogingen voor AH.nl
     recipe.name = $('h1').first().text().trim() || 
-                  $('.recipe-header h1').text().trim() || 
+                  $('[data-testid="recipe-title"]').text().trim() ||
+                  $('.recipe-header h1').text().trim() ||
                   'Onbekend recept';
 
     // Hoofdafbeelding
@@ -47,26 +48,26 @@ app.post('/', async (req, res) => {
       recipe.image = new URL(recipe.image, url).href;
     }
 
-    // Ingrediënten (specifiek voor AH)
-    $('.ingredient-list li, li.ingredient, .recipe-ingredients li').each((i, el) => {
+    // Ingrediënten - AH specifieke selectors
+    $('[data-testid="ingredient-list"] li, .ingredients li, li.ingredient').each((i, el) => {
       const text = $(el).text().trim();
       if (text.length > 5) recipe.ingredients.push(text);
     });
 
-    // Alternatieve ingrediënten methode
-    if (recipe.ingredients.length === 0) {
+    // Alternatief voor ingrediënten
+    if (recipe.ingredients.length < 3) {
       $('li').each((i, el) => {
         const text = $(el).text().trim();
-        if (text.length > 8 && (text.match(/^\d/) || text.includes('g ') || text.includes('ml') || text.includes('theelepel'))) {
+        if (text.length > 8 && (text.match(/^\d/) || text.includes(' g') || text.includes(' ml') || text.includes('theelepel'))) {
           recipe.ingredients.push(text);
         }
       });
     }
 
     // Stappen
-    $('ol li, .instruction-step, .recipe-step, p').each((i, el) => {
+    $('ol li, .instruction, [data-testid="instruction-step"], p').each((i, el) => {
       const text = $(el).text().trim();
-      if (text.length > 30) {
+      if (text.length > 25) {
         recipe.instructions.push(text);
       }
     });
